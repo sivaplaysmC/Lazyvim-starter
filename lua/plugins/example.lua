@@ -1,34 +1,114 @@
 -- since this is just an example spec, don't actually load anything here and return an empty spec
 -- stylua: ignore
-if true then return {} end
-
+-- if true then return {} end
+--
 -- every spec file under the "plugins" directory will be loaded automatically by lazy.nvim
 --
 -- In your plugin files, you can:
 -- * add extra plugins
 -- * disable/enabled LazyVim plugins
 -- * override the configuration of LazyVim plugins
-return {
-  -- add gruvbox
-  { "ellisonleao/gruvbox.nvim" },
 
-  -- Configure LazyVim to load gruvbox
+function extractSignature(inputString)
+  local startIndex = inputString:find("%(.*%)")
+  if startIndex then
+    local extractedString = inputString:sub(startIndex)
+    return extractedString
+  else return "" end
+end
+
+return {
   {
-    "LazyVim/LazyVim",
+    "neovim/nvim-lspconfig",
+    init = function()
+      local keys = require("lazyvim.plugins.lsp.keymaps").get()
+      -- change a keymap
+      keys[#keys + 1] = { "K", "<cmd>echo 'hello'<cr>" }
+      -- disable a keymap
+      keys[#keys + 1] = { "K", false }
+      -- add a keymap
+      keys[#keys + 1] = { "H", "<cmd>echo 'hello'<cr>" }
+    end,
+  },
+
+  {
+    "ray-x/lsp_signature.nvim",
     opts = {
-      colorscheme = "gruvbox",
+      timer_interval = 100,
+      floating_window = false,
     },
   },
 
-  -- change trouble config
+  { -- folke/tokyonight
+
+    "folke/tokyonight.nvim",
+    lazy = false,
+    priority = 1000,
+    opts = {
+      transparent = false,
+      on_highlights = function(hl, c)
+        local prompt = "#2d3149"
+        hl.TelescopeNormal = {
+          bg = c.bg_dark,
+          fg = c.fg_dark,
+        }
+        hl.TelescopeBorder = {
+          bg = c.bg_dark,
+          fg = c.bg_dark,
+        }
+        hl.TelescopePromptNormal = {
+          bg = prompt,
+        }
+        hl.TelescopePromptBorder = {
+          bg = prompt,
+          fg = prompt,
+        }
+        hl.TelescopePromptTitle = {
+          bg = prompt,
+          fg = prompt,
+        }
+        hl.TelescopePreviewTitle = {
+          bg = c.bg_dark,
+          fg = c.bg_dark,
+        }
+        hl.TelescopeResultsTitle = {
+          bg = c.bg_dark,
+          fg = c.bg_dark,
+        }
+      end,
+    },
+  },
   {
-    "folke/trouble.nvim",
-    -- opts will be merged with the parent spec
-    opts = { use_diagnostic_signs = true },
+    "rafamadriz/neon",
+  },
+  {
+    "AlexvZyl/nordic.nvim",
   },
 
-  -- disable trouble
-  { "folke/trouble.nvim", enabled = false },
+  -- Configure LazyVim to load nord
+  {
+    "LazyVim/LazyVim",
+    opts = {
+      colorscheme = "tokyonight-storm",
+      lsp = {},
+    },
+  },
+  -- change trouble config
+  {
+    "sivaplaysmC/trouble.nvim",
+    dev = false,
+    enabled = true,
+    -- opts will be merged with the parent spec
+    opts = {
+      use_diagnostic_signs = true,
+      group = true,
+      auto_fold = true,
+      action_keys = {
+        jump = { "l" },
+        open_split = { "<C-s>" },
+      },
+    },
+  },
 
   -- add symbols-outline
   {
@@ -47,12 +127,11 @@ return {
       table.insert(opts.sources, { name = "emoji" })
     end,
   },
-
   -- change some telescope options and a keymap to browse plugin files
   {
     "nvim-telescope/telescope.nvim",
+    dev = false,
     keys = {
-      -- add a keymap to browse plugin files
       -- stylua: ignore
       {
         "<leader>fp",
@@ -60,20 +139,22 @@ return {
         desc = "Find Plugin File",
       },
     },
-    -- change some options
     opts = {
       defaults = {
+        borderchars = { " ", " ", " ", " ", " ", " ", " ", " " },
         layout_strategy = "horizontal",
-        layout_config = { prompt_position = "top" },
         sorting_strategy = "ascending",
-        winblend = 0,
+        layout_config = {
+          prompt_position = "top",
+        },
+        mappings = {
+          i = {
+            ["<C-j>"] = "move_selection_next",
+            ["<C-k>"] = "move_selection_previous",
+          },
+        },
       },
     },
-  },
-
-  -- add telescope-fzf-native
-  {
-    "telescope.nvim",
     dependencies = {
       "nvim-telescope/telescope-fzf-native.nvim",
       build = "make",
@@ -83,77 +164,17 @@ return {
     },
   },
 
-  -- add pyright to lspconfig
-  {
-    "neovim/nvim-lspconfig",
-    ---@class PluginLspOpts
-    opts = {
-      ---@type lspconfig.options
-      servers = {
-        -- pyright will be automatically installed with mason and loaded with lspconfig
-        pyright = {},
-      },
-    },
-  },
-
-  -- add tsserver and setup with typescript.nvim instead of lspconfig
-  {
-    "neovim/nvim-lspconfig",
-    dependencies = {
-      "jose-elias-alvarez/typescript.nvim",
-      init = function()
-        require("lazyvim.util").lsp.on_attach(function(_, buffer)
-          -- stylua: ignore
-          vim.keymap.set( "n", "<leader>co", "TypescriptOrganizeImports", { buffer = buffer, desc = "Organize Imports" })
-          vim.keymap.set("n", "<leader>cR", "TypescriptRenameFile", { desc = "Rename File", buffer = buffer })
-        end)
-      end,
-    },
-    ---@class PluginLspOpts
-    opts = {
-      ---@type lspconfig.options
-      servers = {
-        -- tsserver will be automatically installed with mason and loaded with lspconfig
-        tsserver = {},
-      },
-      -- you can do any additional lsp server setup here
-      -- return true if you don't want this server to be setup with lspconfig
-      ---@type table<string, fun(server:string, opts:_.lspconfig.options):boolean?>
-      setup = {
-        -- example to setup with typescript.nvim
-        tsserver = function(_, opts)
-          require("typescript").setup({ server = opts })
-          return true
-        end,
-        -- Specify * to use this function as a fallback for any server
-        -- ["*"] = function(server, opts) end,
-      },
-    },
-  },
-
-  -- for typescript, LazyVim also includes extra specs to properly setup lspconfig,
-  -- treesitter, mason and typescript.nvim. So instead of the above, you can use:
-  { import = "lazyvim.plugins.extras.lang.typescript" },
-
-  -- add more treesitter parsers
   {
     "nvim-treesitter/nvim-treesitter",
     opts = {
       ensure_installed = {
-        "bash",
-        "html",
-        "javascript",
-        "json",
+        "cpp",
         "lua",
         "markdown",
         "markdown_inline",
-        "python",
         "query",
         "regex",
-        "tsx",
-        "typescript",
         "vim",
-        "yaml",
       },
     },
   },
@@ -177,38 +198,19 @@ return {
     "nvim-lualine/lualine.nvim",
     event = "VeryLazy",
     opts = function(_, opts)
-      table.insert(opts.sections.lualine_x, "😄")
+      local get_text = function()
+        local res = require("lsp_signature").status_line(100000)
+        local modifiedLabel = res.label:sub(1, res.range.start - 1)
+          .. "%#LspSignatureActiveParameter#"
+          .. res.hint
+          .. "%#StatusLine#"
+          .. res.label:sub(res.range["end"] + 1)
+        return extractSignature(modifiedLabel)
+      end
+      table.insert(opts.sections.lualine_c, {
+        get_text,
+      })
     end,
-  },
-
-  -- or you can return new options to override all the defaults
-  {
-    "nvim-lualine/lualine.nvim",
-    event = "VeryLazy",
-    opts = function()
-      return {
-        --[[add your custom lualine config here]]
-      }
-    end,
-  },
-
-  -- use mini.starter instead of alpha
-  { import = "lazyvim.plugins.extras.ui.mini-starter" },
-
-  -- add jsonls and schemastore packages, and setup treesitter for json, json5 and jsonc
-  { import = "lazyvim.plugins.extras.lang.json" },
-
-  -- add any tools you want to have installed below
-  {
-    "williamboman/mason.nvim",
-    opts = {
-      ensure_installed = {
-        "stylua",
-        "shellcheck",
-        "shfmt",
-        "flake8",
-      },
-    },
   },
 
   -- Use <tab> for completion and snippets (supertab)
@@ -242,7 +244,7 @@ return {
             cmp.select_next_item()
             -- You could replace the expand_or_jumpable() calls with expand_or_locally_jumpable()
             -- this way you will only jump inside the snippet region
-          elseif luasnip.expand_or_jumpable() then
+          elseif luasnip.expand_or_locally_jumpable() then
             luasnip.expand_or_jump()
           elseif has_words_before() then
             cmp.complete()
@@ -260,6 +262,68 @@ return {
           end
         end, { "i", "s" }),
       })
+    end,
+  },
+
+  {
+    "folke/noice.nvim",
+    cond = false,
+    opts = {
+      lsp = {
+        signature = {
+          enabled = false,
+        },
+      },
+    },
+  },
+  {
+    "kevinhwang91/nvim-bqf",
+    dependencies = { "junegunn/fzf.vim" },
+    event = "UiEnter",
+    opts = {
+      preview = {
+        auto_preview = true,
+        show_title = false,
+        winblend = 0,
+        win_height = 999,
+        border = "none",
+      },
+      fzf = {
+        extra_opts = { "--bind", "ctrl-o:toggle-all", "--delimiter", "│" },
+      },
+    },
+    init = function() end,
+  },
+  { "junegunn/fzf", dir = "~/.fzf", build = "./install --all" },
+  {
+    "folke/edgy.nvim",
+    -- enabled = false,
+    opts = function(_, opts)
+      table.insert(opts.bottom, { ft = "qf", title = "QuickFix", size = { height = 18 } })
+      -- opts.animate.enabled = false
+      return opts
+    end,
+  },
+  {
+    "joerdav/templ.vim",
+  },
+
+  {
+    "duane9/nvim-rg",
+  },
+  {
+    "neovim/nvim-lspconfig",
+    init = function()
+      local keys = require("lazyvim.plugins.lsp.keymaps").get()
+      keys[#keys + 1] = { "gr", false }
+      keys[#keys + 1] = {
+        "gr",
+        function()
+          vim.lsp.buf.references()
+        end,
+        desc = "lsp_references",
+      }
+      -- change a keymap
     end,
   },
 }

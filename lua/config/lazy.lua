@@ -7,6 +7,10 @@ end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
 require("lazy").setup({
+  dev = {
+    path = "/home/sivaplays/repos/nvim-stuff",
+    -- patterns = { "trouble" }, -- For example {}
+  },
   spec = {
     -- add LazyVim and import its plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
@@ -44,3 +48,44 @@ require("lazy").setup({
     },
   },
 })
+
+-- local colors = require("tokyonight.colors").setup()
+-- local utils = require("tokyonight.util")
+--
+-- local TelescopePrompt = {
+--   TelescopePromptNormal = {
+--     bg = utils.lighten(colors.bg_popup, 0.9),
+--   },
+--   TelescopePromptBorder = {
+--     bg = utils.lighten(colors.bg_popup, 0.9),
+--   },
+--   TelescopePromptTitle = {
+--     bg = utils.lighten(colors.bg_popup, 0.9),
+--     fg = utils.lighten(colors.bg_popup, 0.9),
+--   },
+--
+--   TelescopePreviewNormal = {
+--     bg = colors.bg_dark,
+--   },
+--   TelescopePreviewBorder = {
+--     bg = colors.bg_dark,
+--   },
+--   TelescopePreviewTitle = {
+--     bg = colors.bg_dark,
+--     fg = colors.bg_dark,
+--   },
+--
+--   TelescopeResultsTitle = {
+--     bg = colors.bg_dark,
+--   },
+--   TelescopeResultsNormal = {
+--     bg = colors.bg_dark,
+--   },
+--   TelescopeResultsBorder = {
+--     bg = colors.bg_dark,
+--     fg = colors.bg_dark,
+--   },
+-- }
+-- for hl, col in pairs(TelescopePrompt) do
+--   vim.api.nvim_set_hl(0, hl, col)
+-- end
