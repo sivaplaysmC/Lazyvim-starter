@@ -56,3 +56,13 @@ function _G.qftf(info)
 end
 
 vim.o.qftf = "{info -> v:lua._G.qftf(info)}"
+
+local banned_messages = { "No information available" }
+vim.notify = function(msg, ...)
+  for _, banned in ipairs(banned_messages) do
+    if msg == banned then
+      return
+    end
+  end
+  return require("notify")(msg, ...)
+end

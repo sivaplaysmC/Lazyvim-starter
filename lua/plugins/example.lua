@@ -14,7 +14,9 @@ function extractSignature(inputString)
   if startIndex then
     local extractedString = inputString:sub(startIndex)
     return extractedString
-  else return "" end
+  else
+    return ""
+  end
 end
 
 return {
@@ -29,6 +31,29 @@ return {
       -- add a keymap
       keys[#keys + 1] = { "H", "<cmd>echo 'hello'<cr>" }
     end,
+
+    opts = {
+      servers = {
+        emmet_ls = {
+          filetypes = {
+            "astro",
+            "css",
+            "eruby",
+            "html",
+            "htmldjango",
+            "javascriptreact",
+            "less",
+            "pug",
+            "sass",
+            "scss",
+            "svelte",
+            "typescriptreact",
+            "vue",
+            "templ",
+          },
+        },
+      },
+    },
   },
 
   {
@@ -166,17 +191,31 @@ return {
 
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = {
-      ensure_installed = {
-        "cpp",
-        "lua",
-        "markdown",
-        "markdown_inline",
-        "query",
-        "regex",
-        "vim",
-      },
-    },
+    opts = function()
+      local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+      parser_config.hyperscript = {
+        install_info = {
+          url = "/home/sivaplays/repos/mine/tree-sitter-_hyperscript/", -- local path or git repo
+          files = { "src/parser.c" }, -- note that some parsers also require src/scanner.c or src/scanner.cc
+          -- optional entries:
+          generate_requires_npm = true, -- if stand-alone parser without npm dependencies
+          requires_generate_from_grammar = false, -- if folder contains pre-generated src/parser.c
+        },
+        filetype = "hyperscript", -- if filetype does not match the parser name
+      }
+
+      return {
+        ensure_installed = {
+          "cpp",
+          "lua",
+          "markdown",
+          "markdown_inline",
+          "query",
+          "regex",
+          "vim",
+        },
+      }
+    end,
   },
 
   -- since `vim.tbl_deep_extend`, can only merge tables and not lists, the code above
@@ -185,10 +224,12 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
+      opts.highlight = { enable = true }
       -- add tsx and treesitter
       vim.list_extend(opts.ensure_installed, {
         "tsx",
         "typescript",
+        "hyperscript",
       })
     end,
   },
@@ -316,6 +357,7 @@ return {
     init = function()
       local keys = require("lazyvim.plugins.lsp.keymaps").get()
       keys[#keys + 1] = { "gr", false }
+      keys[#keys + 1] = { "gR", false }
       keys[#keys + 1] = {
         "gr",
         function()
@@ -323,7 +365,57 @@ return {
         end,
         desc = "lsp_references",
       }
+      keys[#keys + 1] = {
+        "gR",
+        function()
+          require("trouble").toggle("lsp_references")
+        end,
+        desc = "lsp_references(trouble)",
+      }
       -- change a keymap
+    end,
+  },
+
+  {
+    "rcarriga/nvim-notify",
+    config = function()
+      local banned_messages = { "No information available" }
+      vim.notify = function(msg, ...)
+        for _, banned in ipairs(banned_messages) do
+          if msg == banned then
+            return
+          end
+        end
+        require("notify")(msg, ...)
+      end
+    end,
+  },
+
+  {
+    "stevearc/conform.nvim",
+    opts = function(_, opt)
+      opt.formatters_by_ft.templ = { "templ_formatter" }
+      opt.formatters.templ_formatter = {
+        command = "templ",
+        lsp_fallback = "nil",
+        args = { "fmt" },
+        stdin = true,
+      }
+    end,
+  },
+  {
+    "max397574/better-escape.nvim",
+    opts = {
+      mapping = { "jk", "kj" },
+      timeout = vim.o.timeoutlen,
+      clear_empty_lines = false, -- clear line after escaping if there is only whitespace
+      keys = "<Esc>",
+    },
+  },
+  {
+    "ray-x/lsp_signature.nvim",
+    opts = function(_, opts)
+      opts.hint_prefix = "↣"
     end,
   },
 }
